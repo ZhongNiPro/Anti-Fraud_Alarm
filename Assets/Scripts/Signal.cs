@@ -1,30 +1,57 @@
+using System.Collections;
 using UnityEngine;
 
 public class Signal : MonoBehaviour
 {
     [SerializeField] private AudioSource _audioSource;
 
-    private float _volumeChange = 1f;
-    private float _targetVolume = 0f;
+    private float _volumeChange = .05f;
+    private float _maxVolume = 1f;
+    private float _delay = .1f;
+    private WaitForSeconds _waitForSeconds;
+    private Coroutine _coroutine;
 
-    private void Update()
+    private void Awake()
     {
-        _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, _targetVolume, _volumeChange * Time.deltaTime);
+        _waitForSeconds = new WaitForSeconds(_delay);
+        _audioSource.volume = 0;
     }
 
-    private void OnTriggerEnter(Collider other)
+    public void StartAlarm()
     {
-        if (other.TryGetComponent(out Move move))
+        if (_coroutine != null)
         {
-            _targetVolume = 1f;
+            StopCoroutine(_coroutine);
         }
+
+        _coroutine = StartCoroutine(ChangeVolume(targetVolume: _maxVolume));
+
+        _audioSource.Play();
     }
 
-    private void OnTriggerExit(Collider other)
+    public void StopAlarm()
     {
-        if (other.TryGetComponent(out Move move))
+        if (_coroutine != null)
         {
-            _targetVolume = 0f;
+            StopCoroutine(_coroutine);
+        }
+
+        _coroutine = StartCoroutine(ChangeVolume(targetVolume: 0f));
+    }
+
+
+    private IEnumerator ChangeVolume(float targetVolume)
+    {
+        while (_audioSource.volume != targetVolume)
+        {
+            _audioSource.volume = Mathf.MoveTowards(_audioSource.volume, targetVolume, _volumeChange);
+
+            yield return _waitForSeconds;
+        }
+
+        if (_audioSource.volume == 0)
+        {
+            _audioSource.Stop();
         }
     }
 }
